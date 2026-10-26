@@ -1,0 +1,128 @@
+.cvp-player {
+  /* Everything derives from the reply's text colour, so the player follows ChatGPT's light and dark themes. */
+  --cvp-fg: currentColor;
+  --cvp-muted: color-mix(in srgb, currentColor 60%, transparent);
+  --cvp-border: color-mix(in srgb, currentColor 12%, transparent);
+  --cvp-surface: color-mix(in srgb, currentColor 4%, transparent);
+  --cvp-button: color-mix(in srgb, currentColor 3%, transparent);
+  --cvp-hover: color-mix(in srgb, currentColor 10%, transparent);
+  --cvp-accent: currentColor;
+  --cvp-track: color-mix(in srgb, currentColor 18%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  max-width: 520px;
+  height: 44px;
+  margin: 10px 0 2px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--cvp-border);
+  border-radius: 22px;
+  background: var(--cvp-surface);
+  font: 13px/1 ui-sans-serif, -apple-system, system-ui, "Segoe UI", sans-serif;
+  user-select: none;
+}
+
+.cvp-player button,
+.cvp-player a {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  border: 1px solid var(--cvp-border);
+  border-radius: 17px;
+  background: var(--cvp-button);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.cvp-player button:hover,
+.cvp-player a:hover {
+  background: var(--cvp-hover);
+}
+
+.cvp-play {
+  width: 34px;
+  padding: 0;
+}
+
+.cvp-rate {
+  min-width: 50px;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cvp-download {
+  width: 34px;
+}
+
+.cvp-player:not([data-state="ready"]) .cvp-download {
+  display: none !important;
+}
+
+.cvp-seek {
+  flex: 1;
+  min-width: 40px;
+  height: 4px;
+  margin: 0 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--cvp-accent) calc(var(--cvp-progress, 0) * 100%),
+    var(--cvp-track) calc(var(--cvp-progress, 0) * 100%)
+  );
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.cvp-seek::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: var(--cvp-accent);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.cvp-seek:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cvp-seek:disabled::-webkit-slider-thumb {
+  visibility: hidden;
+}
+
+.cvp-time {
+  flex: none;
+  min-width: 78px;
+  color: var(--cvp-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cvp-player[data-state="queued"] .cvp-play,
+.cvp-player[data-state="loading"] .cvp-play {
+  opacity: 0.55;
+  animation: cvp-pulse 1.2s ease-in-out infinite;
+}
+
+.cvp-player.cvp-wants-play .cvp-play {
+  opacity: 1;
+  border-color: var(--cvp-accent);
+}
+
+.cvp-player[data-state="error"] .cvp-time {
+  color: #d03b3b;
+}
+
+@keyframes cvp-pulse {
+  50% {
+    transform: scale(0.88);
+  }
+}
