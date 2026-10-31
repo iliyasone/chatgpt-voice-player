@@ -1,16 +1,12 @@
 // ChatGPT Voice Player: puts an audio player under every finished assistant reply on chatgpt.com.
 // The audio comes from the same endpoint ChatGPT's own Read Aloud uses, /backend-api/synthesize,
-// and is fetched as soon as the reply is finished and near the screen, so Play starts at once.
+// and is fetched only when Play is clicked: requesting every reply in advance ran into ChatGPT's rate limits.
 
 const RATES = [1, 1.25, 1.5, 1.75, 2];
-const DEFAULTS = { autoload: true, voice: "", rate: 1 };
-const PARALLEL = 2; // synthesize requests in flight at once
-const NEARBY = "1500px"; // replies this close to the screen are loaded in advance
+const DEFAULTS = { voice: "", rate: 1 };
 
 const settings = { ...DEFAULTS };
 const players = new Map(); // message id -> Player
-const queue = [];
-let running = 0;
 
 const ICONS = {
   play: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z"/></svg>',
@@ -89,41 +85,6 @@ async function synthesize(conversationId, messageId) {
   return new Blob([blob], { type: "audio/mpeg" });
 }
 
-// ---------- load queue ----------
-
-function enqueue(player, first) {
-  if (player.state !== "idle") return;
-  player.setState("queued");
-  first ? queue.unshift(player) : queue.push(player);
-  pump();
-}
-
-function pump() {
-  while (running < PARALLEL && queue.length) {
-    const player = queue.shift();
-    if (!player.root.isConnected) {
-      player.setState("idle");
-      continue;
-    }
-    running++;
-    player.load().finally(() => {
-      running--;
-      pump();
-    });
-  }
-}
-
-const nearby = new IntersectionObserver(
-  (entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      const player = players.get(entry.target.dataset.messageId);
-      if (player && settings.autoload) enqueue(player);
-    }
-  },
-  { rootMargin: `${NEARBY} 0px` }
-);
-
 // ---------- player ----------
 
 function clock(seconds) {
@@ -135,7 +96,7 @@ class Player {
   constructor(conversationId, messageId) {
     this.conversationId = conversationId;
     this.messageId = messageId;
-    this.state = "idle"; // idle, queued, loading, ready, error
+    this.state = "idle"; // idle, loading, ready, error
     this.wantsPlay = false;
     this.audio = new Audio();
     this.audio.preload = "auto";
@@ -206,15 +167,10 @@ class Player {
     if (this.state === "ready") {
       this.audio.paused ? this.audio.play().catch(() => {}) : this.audio.pause();
     } else if (this.state === "error" || this.state === "idle") {
-      this.state = "idle";
       this.wantsPlay = true;
-      enqueue(this, true);
+      this.load();
     } else {
       this.wantsPlay = !this.wantsPlay; // a second click while loading cancels the auto-start
-      if (this.wantsPlay) {
-        const at = queue.indexOf(this);
-        if (at > 0) queue.unshift(...queue.splice(at, 1));
-      }
       this.render();
     }
   }
@@ -245,7 +201,7 @@ class Player {
 
   render() {
     const { audio, state } = this;
-    const busy = state === "queued" || state === "loading";
+    const busy = state === "loading";
     this.root.dataset.state = state;
     this.root.classList.toggle("cvp-wants-play", busy && this.wantsPlay);
     const playing = state === "ready" && !audio.paused;
@@ -265,13 +221,10 @@ class Player {
 
   destroy() {
     this.destroyed = true;
-    nearby.unobserve(this.root);
     this.audio.pause();
     this.audio.removeAttribute("src");
     if (this.url) URL.revokeObjectURL(this.url);
     this.root.remove();
-    const at = queue.indexOf(this);
-    if (at >= 0) queue.splice(at, 1);
   }
 }
 
@@ -332,11 +285,7 @@ function scan() {
     // A turn holds the question too, with its own action bar; the reply's bar is the last one.
     const actions = [...turn.querySelectorAll(ACTIONS)].pop();
     const placed = actions ? player.root.nextElementSibling === actions : player.root.previousElementSibling === message;
-    if (!placed || !player.root.isConnected) {
-      actions ? actions.before(player.root) : message.after(player.root);
-      nearby.unobserve(player.root);
-      nearby.observe(player.root);
-    }
+    if (!placed || !player.root.isConnected) actions ? actions.before(player.root) : message.after(player.root);
     seen.add(id);
   }
   for (const [id, player] of players) {
@@ -386,10 +335,6 @@ chrome.storage.sync.get(DEFAULTS).then((stored) => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "sync") return;
   if (changes.rate) applyRate(changes.rate.newValue || 1);
-  if (changes.autoload) {
-    settings.autoload = changes.autoload.newValue;
-    if (settings.autoload) for (const player of players.values()) nearby.unobserve(player.root), nearby.observe(player.root);
-  }
   if (changes.voice) {
     settings.voice = changes.voice.newValue || "";
     accountVoicePromise = null;
