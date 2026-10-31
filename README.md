@@ -4,8 +4,8 @@ A Chrome extension that puts a real audio player under every ChatGPT reply on
 [chatgpt.com](https://chatgpt.com): play, **pause**, seek, change speed, download.
 
 ChatGPT's own **Read aloud** can only start and stop: no pause, no seeking, no speed control, and it
-makes you wait while the audio is generated. This extension voices each finished reply in advance, so
-the player is ready by the time you finish reading.
+plays from the start only. This extension voices a reply when you click Play and then lets you pause,
+seek and change speed.
 
 ![The player under a ChatGPT reply, light and dark theme](docs/screenshot.png)
 
@@ -13,8 +13,8 @@ the player is ready by the time you finish reading.
 
 - A player under each finished assistant reply: play / pause, seek bar, elapsed and total time.
 - Speed: 1×, 1.25×, 1.5×, 1.75×, 2× — one setting for all replies, remembered.
-- Audio is fetched as soon as a reply is finished, without a click. Replies far up a long
-  conversation are fetched when you scroll near them, two at a time.
+- Audio is fetched only when you click Play, then kept for the life of the tab: playing it again
+  plays at once.
 - ChatGPT's own **Read aloud** button plays and pauses the player of its reply.
 - Starting one reply pauses any other. Media keys (play/pause, ±10 s) work.
 - Download the reply as MP3.
@@ -43,7 +43,6 @@ Click the extension icon:
 - **Voice** — *Same as in ChatGPT* uses the voice from ChatGPT's settings; any other choice
   overrides it for this extension only.
 - **Speed** — the default playback speed (the `1×` button on a player changes the same setting).
-- **Load audio in advance** — on by default. Off: a reply is voiced on the first click of Play.
 
 ## How it works
 
@@ -56,10 +55,11 @@ GET /backend-api/synthesize?message_id=<id>&conversation_id=<id>&voice=<voice>&f
 
 with the access token from `/api/auth/session` of your own signed-in session. The MP3 is kept in
 memory as a blob for the life of the tab. Nothing is sent anywhere except chatgpt.com, and the
-extension stores only its own three settings (see [PRIVACY.md](PRIVACY.md)).
+extension stores only its own two settings (see [PRIVACY.md](PRIVACY.md)).
 
-Each synthesize call counts against your ChatGPT usage the same way clicking Read aloud does. Turn
-off **Load audio in advance** if you rarely listen.
+Each synthesize call counts against your ChatGPT usage the same way clicking Read aloud does, so the
+extension makes one only when you click Play: voicing every reply in advance ran into ChatGPT's rate
+limits.
 
 ChatGPT changes its markup often. The selectors live at the top of the "page scanning" section of
 [`extension/content.js`](extension/content.js); when the players stop appearing, that is the place

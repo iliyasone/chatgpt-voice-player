@@ -7,6 +7,6 @@ ChatGPT Voice Player runs only on `https://chatgpt.com`.
   `/backend-api/synthesize` (the audio of a reply).
 - Audio stays in the tab's memory and is discarded when the tab closes or navigates away from the
   conversation.
-- It stores, via `chrome.storage`, only its settings (voice, speed, load in advance) and the list of
+- It stores, via `chrome.storage`, only its settings (voice, speed) and the list of
   voice names ChatGPT offers.
 - No analytics, no third-party servers, no data collection.

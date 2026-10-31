@@ -13,10 +13,9 @@ const RATES = [1, 1.25, 1.5, 1.75, 2];
 
 const voiceSelect = document.getElementById("voice");
 const rateSelect = document.getElementById("rate");
-const autoload = document.getElementById("autoload");
 
 Promise.all([
-  chrome.storage.sync.get({ voice: "", rate: 1, autoload: true }),
+  chrome.storage.sync.get({ voice: "", rate: 1 }),
   chrome.storage.local.get({ voices: [], accountVoice: "" }),
 ]).then(([sync, local]) => {
   // The content script saves the account's own voice list once it has talked to ChatGPT.
@@ -29,10 +28,7 @@ Promise.all([
 
   for (const r of RATES) rateSelect.add(new Option(r + "×", r));
   rateSelect.value = sync.rate;
-
-  autoload.checked = sync.autoload;
 });
 
 voiceSelect.onchange = () => chrome.storage.sync.set({ voice: voiceSelect.value });
 rateSelect.onchange = () => chrome.storage.sync.set({ rate: +rateSelect.value });
-autoload.onchange = () => chrome.storage.sync.set({ autoload: autoload.checked });
